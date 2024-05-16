@@ -4,6 +4,18 @@ This project aims to predict the closing prices of Tesla (TSLA) stock using vari
 
 ## Project Structure
 
+TSLA_Stock_Price_Prediction/
+├── data/
+│ └── TSLA.csv
+├── notebooks/
+│ └── TSLA_Stock_Prediction.ipynb
+├── models/
+│ ├── decision_tree_model.pkl
+│ ├── svm_model.pkl
+│ └── knn_model.pkl
+├── README.md
+└── requirements.txt
+
 
 - **data/**: Contains the dataset file.
 - **notebooks/**: Contains the Jupyter notebook used for data analysis and model training.
