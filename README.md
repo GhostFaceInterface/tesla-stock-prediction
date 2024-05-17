@@ -2,24 +2,14 @@
 
 This project aims to predict the closing prices of Tesla (TSLA) stock using various machine learning models. The project involves data preprocessing, feature selection, normalization, model training, and evaluation.
 
-## Project Structure
 
-TSLA_Stock_Price_Prediction/
-├── data/
-│ └── TSLA.csv
-├── notebooks/
-│ └── TSLA_Stock_Prediction.ipynb
-├── models/
-│ ├── decision_tree_model.pkl
-│ ├── svm_model.pkl
-│ └── knn_model.pkl
-├── README.md
-└── requirements.txt
 
 
 - **data/**: Contains the dataset file.
 - **notebooks/**: Contains the Jupyter notebook used for data analysis and model training.
 - **models/**: Contains the trained models.
+- **app.py**: The main Python script for running the Streamlit application.
+- **ml_odev_py.py**: An additional Python script for the project.
 - **README.md**: Project documentation.
 - **requirements.txt**: Python dependencies.
 
@@ -80,3 +70,33 @@ To run this project, you need to have Python installed. You can install the requ
 
 ```bash
 pip install -r requirements.txt
+```
+
+## Usage
+
+1. **Clone the repository**:
+```bash
+git clone https://github.com/GhostFaceInterface/tesla-stock-prediction.git
+```
+
+2. **Navigate to the project directory**
+
+```bash
+cd tesla-stock-prediction
+```
+
+3. **Open the Jupyter notebook to see the analysis and results**
+
+```bash
+jupyter notebook notebooks/ml_odev.ipynb
+
+```
+
+4. **To run the Streamlit application:**
+
+
+```bash
+streamlit run ml_odev_py.py
+
+
+```
