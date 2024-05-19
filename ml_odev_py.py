@@ -8,94 +8,100 @@ from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.feature_selection import VarianceThreshold, RFE
 from sklearn.linear_model import LinearRegression
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 
-# Fonksiyonlar
-def check_df(df, head=5):
-    st.write("### Veri Seti Bilgileri")
-    st.write("#### Şekil")
-    st.write(df.shape)
-    st.write("#### Türler")
-    st.write(df.dtypes)
-    st.write("#### İlk Satırlar")
-    st.write(df.head(head))
-    st.write("#### Son Satırlar")
-    st.write(df.tail(head))
-    st.write("#### Eksik Değerler")
-    st.write(df.isnull().sum())
-    st.write("#### Quantiles")
-    numeric_df = df.select_dtypes(include=['number'])  # Sadece sayısal sütunları seç
-    st.write(numeric_df.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)    
+# Streamlit başlığı
+st.title("Makine Öğrenimi Model Performansı Karşılaştırma")
 
-def split_data(df, test_size):
-    position = int(round(len(df) * (1 - test_size)))
-    train = df[:position]
-    test = df[position:]
-    return train, test
-
-def create_features(df, lookback):
-    X, Y = [], []
-    for i in range(lookback, len(df)):
-        X.append(df[i-lookback:i, :-1].flatten())  # Özellikler (Open, High, Low)
-        Y.append(df[i, -1])  # Hedef değişken (Close)
-    return np.array(X), np.array(Y)
-
-# Streamlit başlatma
-st.title("Hisse Senedi Fiyat Tahmini")
-st.write("Bu uygulama, Tesla hisse senedi fiyatını tahmin etmek için makine öğrenmesi modellerini kullanır.")
-
-# Veri yükleme
-uploaded_file = st.file_uploader("CSV dosyanızı yükleyin", type=["csv"])
+# Veri setini yükleyelim
+uploaded_file = st.file_uploader("Bir CSV dosyası yükleyin", type=["csv"])
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
+
+    # Veri setini inceleyelim
+    st.write("### Veri Seti Başlıkları")
+    st.write(df.head())
+    
+    st.write("### Veri Seti Bilgileri")
+    st.write(df.info())
+
+    # Veriyi detaylı inceleme fonksiyonu
+    def check_df(df, head=5):
+        st.write("### Shape")
+        st.write(df.shape)
+        st.write("### Types")
+        st.write(df.dtypes)
+        st.write("### Head")
+        st.write(df.head(head))
+        st.write("### Tail")
+        st.write(df.tail(head))
+        st.write("### NA")
+        st.write(df.isnull().sum())
+        numeric_df = df.select_dtypes(include=['number'])  # Sadece sayısal sütunları seç
+        st.write("### Quantiles")
+        st.write(numeric_df.quantile([0, 0.05, 0.50, 0.95, 0.99, 1]).T)
+    
     check_df(df)
 
-    # Tarih tipine dönüştürme
+    # object olan Date değişkenini gerçek Date tipine dönüştürme işlemi
     df['Date'] = pd.to_datetime(df['Date'])
+    tesla_df = df[["Date","Close"]]
+    tesla_df.index =  tesla_df['Date']
+    tesla_df.drop(columns=['Date'], inplace=True)
 
-    # Grafik gösterimi
-    st.write("### Tarihe Göre Tesla Hisse Fiyatları")
-    plt.figure(figsize=(12, 6))
-    plt.plot(df['Date'], df['Close'], color="red")
-    plt.ylabel("Hisse Fiyatı")
-    plt.title("Tarihe Göre Tesla Hisseleri")
-    plt.xlabel("Tarih")
-    st.pyplot(plt)
+    st.write("### İşlenen Veri Seti")
+    st.write(tesla_df.head())
 
-    # Özellik seçimi
-    selected_features = ['Open', 'High', 'Low', 'Close']
-    tesla_df = df[['Date'] + selected_features]
-    tesla_df.set_index('Date', inplace=True)
-    
-    # Train-test ayrımı
-    train, test = split_data(tesla_df, 0.20)
+    # Veri hazırlığı fonksiyonu
+    def create_features(df, lookback):
+        X, y = [], []
+        for i in range(len(df) - lookback):
+            X.append(df[i:(i + lookback), 0])
+            y.append(df[i + lookback, 0])
+        return np.array(X), np.array(y)
 
-    # Normalizasyon işlemi
+    # Veriyi ölçeklendirme
     scaler = MinMaxScaler(feature_range=(0, 1))
-    train_scaled = scaler.fit_transform(train)
-    test_scaled = scaler.transform(test)
+    scaled_data = scaler.fit_transform(tesla_df.values)
 
-    # Veri setini periyotlar halinde bölme
-    lookback = st.slider("Lookback Period", min_value=1, max_value=60, value=20)
-    X_train, y_train = create_features(train_scaled, lookback)
-    X_test, y_test = create_features(test_scaled, lookback)
+    # Veriyi eğitim ve test setlerine ayırma
+    train_size = int(len(scaled_data) * 0.8)
+    train, test = scaled_data[:train_size], scaled_data[train_size:]
 
-    # Model seçimi
-    model_option = st.selectbox("Model Seçin", ["Karar Ağacı", "SVM", "KNN"])
+    lookback = 20
+    X_train, y_train = create_features(train, lookback)
+    X_test, y_test = create_features(test, lookback)
 
-    if model_option == "Karar Ağacı":
-        model = DecisionTreeRegressor()
-    elif model_option == "SVM":
-        model = SVR()
-    elif model_option == "KNN":
-        model = KNeighborsRegressor()
+    st.write("### Eğitim ve Test Setlerinin Boyutları")
+    st.write("X_train:", X_train.shape, "y_train:", y_train.shape)
+    st.write("X_test:", X_test.shape, "y_test:", y_test.shape)
 
-    # Model eğitimi
-    model.fit(X_train, y_train)
-    predictions = model.predict(X_test)
+    # Karar Ağacı Modeli
+    dt_model = DecisionTreeRegressor()
+    dt_model.fit(X_train, y_train)
+    dt_predictions = dt_model.predict(X_test)
 
-    # Sonuçların gösterimi
-    st.write(f"### {model_option} Model Sonuçları")
-    st.write("Mean Squared Error (MSE): ", mean_squared_error(y_test, predictions))
-    st.write("Mean Absolute Error (MAE): ", mean_absolute_error(y_test, predictions))
-    st.write("R-squared (R²): ", r2_score(y_test, predictions))
+    st.write("### Decision Tree Modeli Sonuçları")
+    st.write("MSE: ", mean_squared_error(y_test, dt_predictions))
+    st.write("MAE: ", mean_absolute_error(y_test, dt_predictions))
+    st.write("R2: ", r2_score(y_test, dt_predictions))
+
+    # SVM Modeli
+    svm_model = SVR()
+    svm_model.fit(X_train, y_train)
+    svm_predictions = svm_model.predict(X_test)
+
+    st.write("### SVM Modeli Sonuçları")
+    st.write("MSE: ", mean_squared_error(y_test, svm_predictions))
+    st.write("MAE: ", mean_absolute_error(y_test, svm_predictions))
+    st.write("R2: ", r2_score(y_test, svm_predictions))
+
+    # KNN Modeli
+    knn_model = KNeighborsRegressor()
+    knn_model.fit(X_train, y_train)
+    knn_predictions = knn_model.predict(X_test)
+
+    st.write("### KNN Modeli Sonuçları")
+    st.write("MSE: ", mean_squared_error(y_test, knn_predictions))
+    st.write("MAE: ", mean_absolute_error(y_test, knn_predictions))
+    st.write("R2: ", r2_score(y_test, knn_predictions))
